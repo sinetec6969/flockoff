@@ -21,6 +21,11 @@ typedef struct {
     bool     alerted;
 } Device;
 
+// Callback fired (under mutex) when a brand-new device is inserted.
+// Must be non-blocking — use xQueueSend(..., 0) style calls only.
+typedef void (*NewDeviceCb)(const Device* d);
+void device_list_set_new_device_cb(NewDeviceCb cb);
+
 void          device_list_init();
 
 // Returns true when this is a newly seen device.

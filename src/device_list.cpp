@@ -4,8 +4,11 @@
 #include <string.h>
 #include <Arduino.h>
 
-static Device           s_devs[MAX_DEVICES];
+static Device            s_devs[MAX_DEVICES];
 static SemaphoreHandle_t s_mutex;
+static NewDeviceCb       s_new_device_cb = nullptr;
+
+void device_list_set_new_device_cb(NewDeviceCb cb) { s_new_device_cb = cb; }
 
 void device_list_init() {
     memset(s_devs, 0, sizeof(s_devs));
@@ -66,6 +69,7 @@ bool device_list_update(const uint8_t mac[6], VendorId vendor,
     d->last_seen_ms  = now;
     d->active        = true;
     d->alerted       = false;
+    if (s_new_device_cb) s_new_device_cb(d);  // called under mutex — must be non-blocking
     device_list_unlock();
     return true;
 }

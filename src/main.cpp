@@ -12,6 +12,7 @@
 #include "alert.h"
 #include "ble_scanner.h"
 #include "wifi_scanner.h"
+#include "lora_tx.h"
 #include "display.h"
 
 // PI4IOE5V6408 I2C port expander on the Cap LoRa 1262 Cap-Bus
@@ -20,13 +21,24 @@
 #define PI4IOE_SCL   9
 
 // ── Inter-core flags ──────────────────────────────────────────────────────────
-static std::atomic<bool> s_force_sweep{false};  // W key → immediate WiFi sweep
-static std::atomic<bool> s_scan_paused{false};  // U key → pause scan during OTA
+static std::atomic<bool> s_force_sweep{false};
+static std::atomic<bool> s_scan_paused{false};
 
-// ── Alert queue (Core 0 → Core 1) ────────────────────────────────────────────
-static QueueHandle_t s_alert_queue;
+// ── Queues ────────────────────────────────────────────────────────────────────
+static QueueHandle_t s_alert_queue;   // VendorId byte  → Core 1 alert buzzer
+static QueueHandle_t s_lora_queue;    // LoraPacket     → lora_task TX
 
-// ── Scan task (Core 0) ────────────────────────────────────────────────────────
+// ── New-device callback (called under device_list mutex, Core 0) ─────────────
+// Must be non-blocking. Feeds both the alert buzzer queue and the LoRa TX queue.
+static void on_new_device(const Device* d) {
+    uint8_t v = (uint8_t)d->vendor;
+    xQueueSend(s_alert_queue, &v, 0);
+
+    LoraPacket pkt = lora_pkt_from_device(d);
+    xQueueSend(s_lora_queue, &pkt, 0);
+}
+
+// ── Scan task — Core 0, priority 5 ───────────────────────────────────────────
 static void scan_task(void* /*arg*/) {
     ble_scanner_init();
     wifi_scanner_init();
@@ -35,12 +47,11 @@ static void scan_task(void* /*arg*/) {
     uint32_t last_sweep_ms = 0;
 
     for (;;) {
-        // Yield when OTA update is running on Core 1
         if (s_scan_paused.load()) {
             ble_scanner_pause();
             while (s_scan_paused.load()) vTaskDelay(pdMS_TO_TICKS(100));
             ble_scanner_resume();
-            last_sweep_ms = millis();   // reset sweep timer after pause
+            last_sweep_ms = millis();
             continue;
         }
 
@@ -50,7 +61,7 @@ static void scan_task(void* /*arg*/) {
 
         if (do_sweep) {
             ble_scanner_pause();
-            wifi_scanner_sweep();        // blocks ~4.5 s (3 ch × 1.5 s)
+            wifi_scanner_sweep();
             ble_scanner_resume();
             last_sweep_ms = millis();
         }
@@ -61,13 +72,26 @@ static void scan_task(void* /*arg*/) {
     }
 }
 
+// ── LoRa TX task — Core 0, priority 2 (below scan_task) ─────────────────────
+// Blocks on the queue; each packet is a blocking ~500 ms LoRa transmit.
+// Running on Core 0 keeps the UI (Core 1) fully responsive during TX.
+static void lora_task(void* /*arg*/) {
+    LoraPacket pkt;
+    for (;;) {
+        if (xQueueReceive(s_lora_queue, &pkt, portMAX_DELAY) == pdTRUE) {
+            lora_tx_send(&pkt);
+        }
+    }
+}
+
 // ── Board init ───────────────────────────────────────────────────────────────
 static void cap_lora_init() {
     Wire1.begin(PI4IOE_SDA, PI4IOE_SCL);
     Wire1.setClock(400000);
+    // P0 starts LOW; lora_tx_init() will set it HIGH when the radio is ready
     Wire1.beginTransmission(PI4IOE_ADDR);
-    Wire1.write(0x01);  // Output register
-    Wire1.write(0x00);  // All outputs LOW — LoRa TX not used in v0.1
+    Wire1.write(0x01);
+    Wire1.write(0x00);
     Wire1.endTransmission();
 }
 
@@ -78,15 +102,21 @@ void setup() {
 
     cap_lora_init();
     spiffs_init();
-    spiffs_load_oui_db();   // hot-load from SPIFFS if available; no-op if absent
+    spiffs_load_oui_db();
     gps_init();
     alert_init();
     device_list_init();
     display_init();
 
-    s_alert_queue = xQueueCreate(8, sizeof(uint8_t));
+    lora_tx_init();   // sets PI4IOE P0 HIGH, starts SPI, calls radio.begin()
+
+    s_alert_queue = xQueueCreate(8,  sizeof(uint8_t));
+    s_lora_queue  = xQueueCreate(16, sizeof(LoraPacket));
+
+    device_list_set_new_device_cb(on_new_device);
 
     xTaskCreatePinnedToCore(scan_task, "scan", 8192, nullptr, 5, nullptr, 0);
+    xTaskCreatePinnedToCore(lora_task, "lora", 4096, nullptr, 2, nullptr, 0);
 }
 
 void loop() {
@@ -112,15 +142,14 @@ void loop() {
 
                 case 'u': case 'U':
                     s_scan_paused.store(true);
-                    delay(250);                  // let scan_task see the flag
-                    ota_update_run();            // blocks until done
+                    delay(250);
+                    ota_update_run();
                     s_scan_paused.store(false);
                     break;
             }
         }
     }
 
-    // Fire buzzer alerts for new devices found on Core 0
     uint8_t vendor_byte;
     while (xQueueReceive(s_alert_queue, &vendor_byte, 0) == pdTRUE) {
         alert_new_device((VendorId)vendor_byte);

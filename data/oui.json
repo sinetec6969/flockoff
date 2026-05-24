@@ -1,0 +1,69 @@
+{
+  "sources": [
+    "https://maclookup.app/vendors/ring-llc",
+    "https://maclookup.app/vendors/flock-safety",
+    "https://www.netify.ai/resources/macs/brands/ring"
+  ],
+  "last_updated": "2026-05-24",
+  "vendors": {
+    "ring": {
+      "name": "Ring LLC",
+      "parent": "Amazon",
+      "notes": "Ring devices use BLE for pairing/setup. Known BLE service UUID: 9760d077-a234-4686-9e00-fcbbee3373f7",
+      "oui": [
+        { "prefix": "00:B4:63", "registered": "2025-12-19" },
+        { "prefix": "18:7F:88", "registered": "2023-10-19" },
+        { "prefix": "24:2B:D6", "registered": "2025-07-29" },
+        { "prefix": "34:3E:A4", "registered": "2020-07-01" },
+        { "prefix": "50:E4:67", "registered": "2026-04-21" },
+        { "prefix": "54:E0:19", "registered": "2019-03-01" },
+        { "prefix": "5C:47:5E", "registered": "2022-07-22" },
+        { "prefix": "64:9A:63", "registered": "2023-03-24" },
+        { "prefix": "90:48:6C", "registered": "2022-01-22" },
+        { "prefix": "9C:76:13", "registered": "2021-01-16" },
+        { "prefix": "AC:9F:C3", "registered": "2024-09-13" },
+        { "prefix": "C4:DB:AD", "registered": "2025-07-22" },
+        { "prefix": "CC:3B:FB", "registered": "2025-03-18" }
+      ]
+    },
+    "flock": {
+      "name": "Flock Safety",
+      "notes": "ALPR cameras primarily use LTE. WiFi/BLE may appear during provisioning. Check older devices for third-party chipset OUIs.",
+      "oui": [
+        { "prefix": "B4:1E:52", "registered": "2024-05-09" }
+      ]
+    }
+  },
+  "ble_fingerprints": {
+    "ring": {
+      "service_uuids": [
+        "9760d077-a234-4686-9e00-fcbbee3373f7"
+      ],
+      "advertisement_names": [
+        "Ring",
+        "Ring Doorbell",
+        "Ring Camera",
+        "Ring Alarm"
+      ],
+      "notes": "Devices advertise service UUID during BLE setup/pairing mode. Name prefix 'Ring' is common."
+    },
+    "flock": {
+      "service_uuids": [],
+      "advertisement_names": [],
+      "notes": "BLE advertisement data for Flock not yet documented. TODO: capture from live device."
+    }
+  },
+  "wifi_fingerprints": {
+    "ring": {
+      "ssid_patterns": [],
+      "notes": "Ring devices connect to home WiFi. Detection via MAC OUI match in beacon/probe frames. Monitor mode required."
+    },
+    "flock": {
+      "ssid_patterns": [
+        "FlockCamera*",
+        "flock-*"
+      ],
+      "notes": "Flock cameras are LTE-primary. WiFi AP may appear during provisioning. SSID patterns unconfirmed — TODO: verify."
+    }
+  }
+}

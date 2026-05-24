@@ -1,69 +1,267 @@
 {
-  "sources": [
-    "https://maclookup.app/vendors/ring-llc",
-    "https://maclookup.app/vendors/flock-safety",
-    "https://www.netify.ai/resources/macs/brands/ring"
-  ],
-  "last_updated": "2026-05-24",
+  "meta": {
+    "last_updated": "2026-05-24",
+    "sources": [
+      "https://standards-oui.ieee.org/oui/oui.txt (IEEE MA-L registry, ground truth)",
+      "https://maclookup.app/vendors/ring-llc",
+      "https://maclookup.app/vendors/flock-safety",
+      "https://github.com/colonelpanichacks/flock-you (field research by @NitekryDPaul and DeFlockJoplin)",
+      "https://www.ryanohoro.com/post/spotting-flock-safety-s-falcon-cameras",
+      "https://www.cehrp.org/dissection-of-flock-safety-camera/"
+    ],
+    "notes": "All OUIs verified against IEEE MA-L registry unless flagged as field_observed or locally_administered. Ring OUIs are IEEE-registered to Ring LLC. Flock OUIs consist of one Flock Safety-registered block plus 30 field-observed OUIs from the LiteOn WCBN3510A WiFi module (and other chipsets) used in Flock hardware prior to 2024."
+  },
   "vendors": {
     "ring": {
       "name": "Ring LLC",
       "parent": "Amazon",
-      "notes": "Ring devices use BLE for pairing/setup. Known BLE service UUID: 9760d077-a234-4686-9e00-fcbbee3373f7",
+      "ieee_registered": true,
+      "oui_count": 13,
       "oui": [
-        { "prefix": "00:B4:63", "registered": "2025-12-19" },
-        { "prefix": "18:7F:88", "registered": "2023-10-19" },
-        { "prefix": "24:2B:D6", "registered": "2025-07-29" },
-        { "prefix": "34:3E:A4", "registered": "2020-07-01" },
-        { "prefix": "50:E4:67", "registered": "2026-04-21" },
-        { "prefix": "54:E0:19", "registered": "2019-03-01" },
-        { "prefix": "5C:47:5E", "registered": "2022-07-22" },
-        { "prefix": "64:9A:63", "registered": "2023-03-24" },
-        { "prefix": "90:48:6C", "registered": "2022-01-22" },
-        { "prefix": "9C:76:13", "registered": "2021-01-16" },
-        { "prefix": "AC:9F:C3", "registered": "2024-09-13" },
-        { "prefix": "C4:DB:AD", "registered": "2025-07-22" },
-        { "prefix": "CC:3B:FB", "registered": "2025-03-18" }
-      ]
+        { "prefix": "54:E0:19", "registered": "2019-03-01", "ieee_vendor": "Ring LLC" },
+        { "prefix": "34:3E:A4", "registered": "2020-07-01", "ieee_vendor": "Ring LLC" },
+        { "prefix": "9C:76:13", "registered": "2021-01-16", "ieee_vendor": "Ring LLC" },
+        { "prefix": "90:48:6C", "registered": "2022-01-22", "ieee_vendor": "Ring LLC" },
+        { "prefix": "5C:47:5E", "registered": "2022-07-22", "ieee_vendor": "Ring LLC" },
+        { "prefix": "64:9A:63", "registered": "2023-03-24", "ieee_vendor": "Ring LLC" },
+        { "prefix": "18:7F:88", "registered": "2023-10-19", "ieee_vendor": "Ring LLC" },
+        { "prefix": "AC:9F:C3", "registered": "2024-09-13", "ieee_vendor": "Ring LLC" },
+        { "prefix": "CC:3B:FB", "registered": "2025-03-18", "ieee_vendor": "Ring LLC" },
+        { "prefix": "00:B4:63", "registered": "2025-12-19", "ieee_vendor": "Ring LLC" },
+        { "prefix": "C4:DB:AD", "registered": "2025-07-22", "ieee_vendor": "Ring LLC" },
+        { "prefix": "24:2B:D6", "registered": "2025-07-29", "ieee_vendor": "Ring LLC" },
+        { "prefix": "50:E4:67", "registered": "2026-04-21", "ieee_vendor": "Ring LLC" }
+      ],
+      "ble": {
+        "service_uuids": [
+          "9760d077-a234-4686-9e00-fcbbee3373f7"
+        ],
+        "advertisement_name_prefixes": ["Ring"],
+        "notes": "UUID active during BLE pairing/setup mode. Devices advertise name starting with 'Ring' (e.g. 'Ring Doorbell', 'Ring Camera', 'Ring Alarm')."
+      },
+      "wifi": {
+        "ssid_patterns": [],
+        "notes": "Ring devices connect to home WiFi. Detect via OUI match on beacon/probe frames. No known proprietary SSID pattern."
+      }
     },
     "flock": {
       "name": "Flock Safety",
-      "notes": "ALPR cameras primarily use LTE. WiFi/BLE may appear during provisioning. Check older devices for third-party chipset OUIs.",
+      "ieee_registered": true,
+      "hardware_notes": "Pre-2024 cameras use LiteOn WCBN3510A (802.11a/b/g/n/ac + BT4.2LE) WiFi module and Sierra Wireless RC76B LTE modem on Lantronix Open-Q 624A SoM. Post-2024 hardware uses Flock's own registered OUI block (B4:1E:52). FCC IDs: N7NRC76B (Sierra Wireless LTE), WCBN3510A (LiteOn WiFi/BT).",
       "oui": [
-        { "prefix": "B4:1E:52", "registered": "2024-05-09" }
-      ]
-    }
-  },
-  "ble_fingerprints": {
-    "ring": {
-      "service_uuids": [
-        "9760d077-a234-4686-9e00-fcbbee3373f7"
+        {
+          "prefix": "B4:1E:52",
+          "registered": "2024-05-09",
+          "ieee_vendor": "Flock Safety",
+          "source": "IEEE MA-L registry",
+          "notes": "Flock Safety's own registered OUI block. Used in post-2024 hardware."
+        },
+        {
+          "prefix": "70:C9:4E",
+          "ieee_vendor": "Liteon Technology Corporation",
+          "source": "field_observed",
+          "chipset": "LiteOn WCBN3510A WiFi module"
+        },
+        {
+          "prefix": "3C:91:80",
+          "ieee_vendor": "Liteon Technology Corporation",
+          "source": "field_observed",
+          "chipset": "LiteOn WCBN3510A WiFi module"
+        },
+        {
+          "prefix": "D8:F3:BC",
+          "ieee_vendor": "Liteon Technology Corporation",
+          "source": "field_observed",
+          "chipset": "LiteOn WCBN3510A WiFi module"
+        },
+        {
+          "prefix": "80:30:49",
+          "ieee_vendor": "Liteon Technology Corporation",
+          "source": "field_observed",
+          "chipset": "LiteOn WCBN3510A WiFi module"
+        },
+        {
+          "prefix": "14:5A:FC",
+          "ieee_vendor": "Liteon Technology Corporation",
+          "source": "field_observed",
+          "chipset": "LiteOn WCBN3510A WiFi module"
+        },
+        {
+          "prefix": "74:4C:A1",
+          "ieee_vendor": "Liteon Technology Corporation",
+          "source": "field_observed",
+          "chipset": "LiteOn WCBN3510A WiFi module"
+        },
+        {
+          "prefix": "9C:2F:9D",
+          "ieee_vendor": "Liteon Technology Corporation",
+          "source": "field_observed",
+          "chipset": "LiteOn WCBN3510A WiFi module"
+        },
+        {
+          "prefix": "C0:35:32",
+          "ieee_vendor": "Liteon Technology Corporation",
+          "source": "field_observed",
+          "chipset": "LiteOn WCBN3510A WiFi module"
+        },
+        {
+          "prefix": "94:08:53",
+          "ieee_vendor": "Liteon Technology Corporation",
+          "source": "field_observed",
+          "chipset": "LiteOn WCBN3510A WiFi module"
+        },
+        {
+          "prefix": "E4:AA:EA",
+          "ieee_vendor": "Liteon Technology Corporation",
+          "source": "field_observed",
+          "chipset": "LiteOn WCBN3510A WiFi module"
+        },
+        {
+          "prefix": "F4:6A:DD",
+          "ieee_vendor": "Liteon Technology Corporation",
+          "source": "field_observed",
+          "chipset": "LiteOn WCBN3510A WiFi module"
+        },
+        {
+          "prefix": "F8:A2:D6",
+          "ieee_vendor": "Liteon Technology Corporation",
+          "source": "field_observed",
+          "chipset": "LiteOn WCBN3510A WiFi module"
+        },
+        {
+          "prefix": "24:B2:B9",
+          "ieee_vendor": "Liteon Technology Corporation",
+          "source": "field_observed",
+          "chipset": "LiteOn WCBN3510A WiFi module"
+        },
+        {
+          "prefix": "00:F4:8D",
+          "ieee_vendor": "Liteon Technology Corporation",
+          "source": "field_observed",
+          "chipset": "LiteOn WCBN3510A WiFi module"
+        },
+        {
+          "prefix": "D0:39:57",
+          "ieee_vendor": "Liteon Technology Corporation",
+          "source": "field_observed",
+          "chipset": "LiteOn WCBN3510A WiFi module"
+        },
+        {
+          "prefix": "E8:D0:FC",
+          "ieee_vendor": "Liteon Technology Corporation",
+          "source": "field_observed",
+          "chipset": "LiteOn WCBN3510A WiFi module"
+        },
+        {
+          "prefix": "B8:1E:A4",
+          "ieee_vendor": "Liteon Technology Corporation",
+          "source": "field_observed",
+          "chipset": "LiteOn WCBN3510A WiFi module"
+        },
+        {
+          "prefix": "70:08:94",
+          "ieee_vendor": "Liteon Technology Corporation",
+          "source": "field_observed",
+          "chipset": "LiteOn WCBN3510A WiFi module"
+        },
+        {
+          "prefix": "58:00:E3",
+          "ieee_vendor": "Liteon Technology Corporation",
+          "source": "field_observed",
+          "chipset": "LiteOn WCBN3510A WiFi module"
+        },
+        {
+          "prefix": "5C:93:A2",
+          "ieee_vendor": "Liteon Technology Corporation",
+          "source": "field_observed",
+          "chipset": "LiteOn WCBN3510A WiFi module"
+        },
+        {
+          "prefix": "64:6E:69",
+          "ieee_vendor": "Liteon Technology Corporation",
+          "source": "field_observed",
+          "chipset": "LiteOn WCBN3510A WiFi module"
+        },
+        {
+          "prefix": "58:8E:81",
+          "ieee_vendor": "Silicon Laboratories",
+          "source": "field_observed",
+          "chipset": "Silicon Labs WiFi module (variant hardware)"
+        },
+        {
+          "prefix": "EC:1B:BD",
+          "ieee_vendor": "Silicon Laboratories",
+          "source": "field_observed",
+          "chipset": "Silicon Labs WiFi module (variant hardware)"
+        },
+        {
+          "prefix": "90:35:EA",
+          "ieee_vendor": "Silicon Laboratories",
+          "source": "field_observed",
+          "chipset": "Silicon Labs WiFi module (variant hardware)"
+        },
+        {
+          "prefix": "3C:71:BF",
+          "ieee_vendor": "Espressif Inc.",
+          "source": "field_observed",
+          "chipset": "ESP-based module (variant hardware)"
+        },
+        {
+          "prefix": "A4:CF:12",
+          "ieee_vendor": "Espressif Inc.",
+          "source": "field_observed",
+          "chipset": "ESP-based module (variant hardware)"
+        },
+        {
+          "prefix": "08:3A:88",
+          "ieee_vendor": "Universal Global Scientific Industrial",
+          "source": "field_observed",
+          "chipset": "UGSI contract-manufactured module"
+        },
+        {
+          "prefix": "E0:4F:43",
+          "ieee_vendor": "Universal Global Scientific Industrial",
+          "source": "field_observed",
+          "chipset": "UGSI contract-manufactured module"
+        },
+        {
+          "prefix": "48:27:EA",
+          "ieee_vendor": "Samsung Electronics Co.,Ltd",
+          "source": "field_observed",
+          "chipset": "Samsung WiFi module (variant hardware)"
+        },
+        {
+          "prefix": "B8:35:32",
+          "ieee_vendor": "UNVERIFIED",
+          "source": "field_observed",
+          "notes": "Not found in IEEE MA-L registry. Confirmed in field testing. May be MA-M/MA-S block or private assignment."
+        },
+        {
+          "prefix": "82:6B:F2",
+          "ieee_vendor": "N/A",
+          "source": "field_observed",
+          "locally_administered": true,
+          "notes": "Locally-administered MAC (bit 1 of first byte set). Not a valid IEEE OUI. Field-confirmed by DeFlockJoplin on 12th camera in Joplin field test. Match only on wildcard probe + LA-bit exception; do NOT use standard OUI match logic."
+        }
       ],
-      "advertisement_names": [
-        "Ring",
-        "Ring Doorbell",
-        "Ring Camera",
-        "Ring Alarm"
-      ],
-      "notes": "Devices advertise service UUID during BLE setup/pairing mode. Name prefix 'Ring' is common."
-    },
-    "flock": {
-      "service_uuids": [],
-      "advertisement_names": [],
-      "notes": "BLE advertisement data for Flock not yet documented. TODO: capture from live device."
-    }
-  },
-  "wifi_fingerprints": {
-    "ring": {
-      "ssid_patterns": [],
-      "notes": "Ring devices connect to home WiFi. Detection via MAC OUI match in beacon/probe frames. Monitor mode required."
-    },
-    "flock": {
-      "ssid_patterns": [
-        "FlockCamera*",
-        "flock-*"
-      ],
-      "notes": "Flock cameras are LTE-primary. WiFi AP may appear during provisioning. SSID patterns unconfirmed — TODO: verify."
+      "ble": {
+        "manufacturer_id": "0x09C8",
+        "manufacturer_name": "XUNTONG",
+        "advertisement_name_patterns": [
+          "Penguin-NNNNNNNNNN",
+          "NNNNNNNNNN"
+        ],
+        "notes": "External battery packs advertise over BLE. Pre-2025: name format 'Penguin-NNNNNNNNNN' (N=decimal digit). Post-2025: numeric-only name 'NNNNNNNNNN'. Validate with manufacturer-specific data for ID 0x09C8 containing serial number (e.g. 'TN72023022000771')."
+      },
+      "wifi": {
+        "ssid_patterns": ["Flock-*"],
+        "probe_signature": {
+          "frame_type": "Management",
+          "subtype": 4,
+          "description": "Probe Request with SSID IE (tag 0) length 0 (wildcard) AND transmitter OUI in Flock list. High-confidence signature — field tested 11/12 cameras with 2 false positives.",
+          "addr1_note": "Also match addr1 (receiver/destination) — reveals sleeping cameras that never transmit but appear as destination in AP probe responses. Original technique by @NitekryDPaul."
+        }
+      }
     }
   }
 }

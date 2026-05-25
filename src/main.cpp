@@ -156,6 +156,9 @@ void loop() {
                     ota_update_run();
                     s_scan_paused.store(false);
                     break;
+
+                case 'j': case 'J': display_nav(+1); break;
+                case 'k': case 'K': display_nav(-1); break;
             }
         }
     }

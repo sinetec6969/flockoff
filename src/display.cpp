@@ -21,8 +21,11 @@
 
 static M5Canvas s_canvas(&M5Cardputer.Display);
 
-// Scan-mode indicator blinks each render cycle
-static bool s_blink = false;
+#define MAX_ROWS 5   // max devices visible at once (2 lines each × 10 px = 100 px)
+
+static bool s_blink      = false;
+static int  s_selected   = 0;   // index of highlighted device (0-based, active list)
+static int  s_scroll_top = 0;   // first visible device index
 
 static void draw_mac(int x, int y, const uint8_t mac[6]) {
     char buf[18];
@@ -48,6 +51,16 @@ static uint16_t trend_color(char t) {
     if (t == '^') return C_GREEN;
     if (t == 'v') return C_RED;
     return C_GREY;
+}
+
+void display_nav(int delta) {
+    int total = device_list_active_count();   // acquires + releases lock internally
+    if (total == 0) { s_selected = 0; s_scroll_top = 0; return; }
+    s_selected += delta;
+    if (s_selected < 0)       s_selected = 0;
+    if (s_selected >= total)  s_selected = total - 1;
+    if (s_selected < s_scroll_top)               s_scroll_top = s_selected;
+    if (s_selected >= s_scroll_top + MAX_ROWS)   s_scroll_top = s_selected - MAX_ROWS + 1;
 }
 
 void display_init() {
@@ -80,17 +93,34 @@ void display_render() {
     s_canvas.drawString(fix.valid ? "GPS" : "---", SCR_W - 28, 2);
 
     // ── Device list ─────────────────────────────────────────────
-    int y = LH + 4;
-    int max_rows = (SCR_H - LH - 4 - LH - 2) / (LH * 2);  // 2 lines per device
-
-    device_list_lock();
+    // active_count() acquires its own lock — call it BEFORE device_list_lock()
+    // to avoid a double-take on the non-recursive mutex.
     int total = device_list_active_count();
-    int shown = 0;
-    for (int i = 0; i < total && shown < max_rows; i++) {
-        const Device* d = device_list_get(i);
+
+    // Clamp selection in case devices were evicted since last nav
+    if (total == 0) {
+        s_selected = 0; s_scroll_top = 0;
+    } else {
+        if (s_selected   >= total)              s_selected   = total - 1;
+        if (s_scroll_top >  total - MAX_ROWS)   s_scroll_top = (total > MAX_ROWS) ? total - MAX_ROWS : 0;
+    }
+
+    int y = LH + 4;
+    device_list_lock();
+    for (int row = 0; row < MAX_ROWS; row++) {
+        int idx = s_scroll_top + row;
+        if (idx >= total) break;
+        const Device* d = device_list_get(idx);
         if (!d) break;
 
+        bool sel = (idx == s_selected);
         uint16_t vc = vendor_color(d->vendor);
+
+        // Selection cursor: vendor-coloured ">" on left edge
+        if (sel) {
+            s_canvas.setTextColor(vc, C_BG);
+            s_canvas.drawString(">", 0, y);
+        }
 
         // Line 1: vendor  MAC  proto
         s_canvas.setTextColor(vc, C_BG);
@@ -100,7 +130,7 @@ void display_render() {
                  d->mac[0], d->mac[1], d->mac[2],
                  d->mac[3], d->mac[4], d->mac[5],
                  d->proto == PROTO_BLE ? "BLE" : "WiFi");
-        s_canvas.drawString(l1, 2, y);
+        s_canvas.drawString(l1, 7, y);
         y += LH;
 
         // Line 2: RSSI + trend arrow + GPS coords / no-fix
@@ -113,9 +143,8 @@ void display_render() {
         } else {
             snprintf(l2, sizeof(l2), "  %4ddBm%c (no fix)", d->rssi, t);
         }
-        s_canvas.drawString(l2, 2, y);
+        s_canvas.drawString(l2, 7, y);
         y += LH;
-        shown++;
     }
     device_list_unlock();
 
@@ -128,8 +157,13 @@ void display_render() {
     int fy = SCR_H - LH - 1;
     s_canvas.fillRect(0, fy, SCR_W, LH + 1, C_BAR);
     s_canvas.setTextColor(C_GREY, C_BAR);
-    char footer[40];
-    snprintf(footer, sizeof(footer), "[Q]uit  [W]ifi sweep  %d detected", total);
+    char footer[48];
+    if (total > 0) {
+        snprintf(footer, sizeof(footer), "[Q]uit [W]ifi [J/K]nav  %d/%d",
+                 s_selected + 1, total);
+    } else {
+        snprintf(footer, sizeof(footer), "[Q]uit [W]ifi sweep");
+    }
     s_canvas.drawString(footer, 2, fy + 1);
 
     s_canvas.pushSprite(0, 0);

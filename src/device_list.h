@@ -19,6 +19,10 @@ typedef struct {
     uint32_t last_seen_ms;
     bool     active;
     bool     alerted;
+    // RSSI ring buffer — newest reading at (hist_idx-1+8)%8
+    int8_t   rssi_hist[8];
+    uint8_t  hist_idx;    // next-write slot (0–7)
+    uint8_t  hist_count;  // how many slots are valid (0–8)
 } Device;
 
 // Callback fired (under mutex) when a brand-new device is inserted.

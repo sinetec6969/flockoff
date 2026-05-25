@@ -34,6 +34,9 @@ bool device_list_update(const uint8_t mac[6], VendorId vendor,
         if (memcmp(s_devs[i].mac, mac, 6) == 0) {
             // Update existing — blend RSSI with 25% new weight
             s_devs[i].rssi = (int8_t)((s_devs[i].rssi * 3 + rssi) / 4);
+            s_devs[i].rssi_hist[s_devs[i].hist_idx] = s_devs[i].rssi;
+            s_devs[i].hist_idx = (s_devs[i].hist_idx + 1) & 7;
+            if (s_devs[i].hist_count < 8) s_devs[i].hist_count++;
             s_devs[i].last_seen_ms = now;
             s_devs[i].proto = proto;
             if (has_gps) {
@@ -69,6 +72,9 @@ bool device_list_update(const uint8_t mac[6], VendorId vendor,
     d->last_seen_ms  = now;
     d->active        = true;
     d->alerted       = false;
+    d->rssi_hist[0]  = rssi;
+    d->hist_idx      = 1;
+    d->hist_count    = 1;
     if (s_new_device_cb) s_new_device_cb(d);  // called under mutex — must be non-blocking
     device_list_unlock();
     return true;

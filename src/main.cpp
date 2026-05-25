@@ -12,7 +12,9 @@
 #include "alert.h"
 #include "ble_scanner.h"
 #include "wifi_scanner.h"
+#include "spi_bus.h"
 #include "lora_tx.h"
+#include "sd_logger.h"
 #include "display.h"
 
 // PI4IOE5V6408 I2C port expander on the Cap LoRa 1262 Cap-Bus
@@ -27,6 +29,7 @@ static std::atomic<bool> s_scan_paused{false};
 // ── Queues ────────────────────────────────────────────────────────────────────
 static QueueHandle_t s_alert_queue;   // VendorId byte  → Core 1 alert buzzer
 static QueueHandle_t s_lora_queue;    // LoraPacket     → lora_task TX
+static QueueHandle_t s_sd_queue;      // Device copy    → Core 1 SD logger
 
 // ── New-device callback (called under device_list mutex, Core 0) ─────────────
 // Must be non-blocking. Feeds both the alert buzzer queue and the LoRa TX queue.
@@ -36,6 +39,8 @@ static void on_new_device(const Device* d) {
 
     LoraPacket pkt = lora_pkt_from_device(d);
     xQueueSend(s_lora_queue, &pkt, 0);
+
+    xQueueSend(s_sd_queue, d, 0);   // copy Device by value into queue
 }
 
 // ── Scan task — Core 0, priority 5 ───────────────────────────────────────────
@@ -101,6 +106,7 @@ void setup() {
     M5Cardputer.begin(cfg, true);
 
     cap_lora_init();
+    spi_bus_init();   // HSPI shared by LoRa + TF card
     spiffs_init();
     spiffs_load_oui_db();
     gps_init();
@@ -108,10 +114,12 @@ void setup() {
     device_list_init();
     display_init();
 
-    lora_tx_init();   // sets PI4IOE P0 HIGH, starts SPI, calls radio.begin()
+    lora_tx_init();   // sets PI4IOE P0 HIGH, calls radio.begin() on g_hspi
+    sd_logger_init(); // mounts TF card on g_hspi, opens GPX + CSV files
 
     s_alert_queue = xQueueCreate(8,  sizeof(uint8_t));
     s_lora_queue  = xQueueCreate(16, sizeof(LoraPacket));
+    s_sd_queue    = xQueueCreate(8,  sizeof(Device));
 
     device_list_set_new_device_cb(on_new_device);
 
@@ -131,7 +139,9 @@ void loop() {
             switch (c) {
                 case 'q': case 'Q':
                     M5Cardputer.Display.fillScreen(TFT_BLACK);
-                    M5Cardputer.Display.drawCentreString("Goodbye", 120, 60, 2);
+                    M5Cardputer.Display.setTextDatum(TC_DATUM);
+                    M5Cardputer.Display.drawString("Goodbye", 120, 60);
+                    M5Cardputer.Display.setTextDatum(TL_DATUM);
                     delay(1000);
                     esp_restart();
                     break;
@@ -154,6 +164,12 @@ void loop() {
     while (xQueueReceive(s_alert_queue, &vendor_byte, 0) == pdTRUE) {
         alert_new_device((VendorId)vendor_byte);
     }
+
+    Device sd_dev;
+    while (xQueueReceive(s_sd_queue, &sd_dev, 0) == pdTRUE) {
+        sd_logger_log_device(&sd_dev);
+    }
+    sd_logger_tick();
 
     display_render();
     delay(50);

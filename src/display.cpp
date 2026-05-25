@@ -2,6 +2,7 @@
 #include "device_list.h"
 #include "oui_lookup.h"
 #include "gps.h"
+#include "sd_logger.h"
 #include <M5Cardputer.h>
 
 // Screen: 240 × 135 px (landscape)
@@ -45,7 +46,11 @@ void display_render() {
     s_canvas.setTextColor(C_WHITE, C_BAR);
     s_canvas.drawString("FlockOff", 2, 2);
 
-    // BLE indicator (always-on)
+    // SD indicator
+    s_canvas.setTextColor(sd_logger_available() ? C_GREEN : C_GREY, C_BAR);
+    s_canvas.drawString("SD", SCR_W - 80, 2);
+
+    // BLE indicator (blinks to show scanner is alive)
     s_canvas.setTextColor(s_blink ? C_GREEN : C_GREY, C_BAR);
     s_canvas.drawString("BLE", SCR_W - 54, 2);
 

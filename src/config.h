@@ -19,3 +19,8 @@
 #define LORA_PREAMBLE   8
 #define LORA_SYNC_WORD  0x34     // private network
 #define LORA_TCXO_V     1.8f    // TCXO reference voltage on Cap LoRa 1262
+
+// ── SD card / logging ─────────────────────────────────────────────────────────
+// TF card CS pin — shares HSPI bus (SCK=G40/MOSI=G14/MISO=G39) with LoRa
+#define SD_CS_PIN             12
+#define SD_TRACK_INTERVAL_MS  5000u   // GPS track-point write cadence

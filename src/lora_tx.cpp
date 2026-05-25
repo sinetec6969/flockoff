@@ -1,4 +1,5 @@
 #include "lora_tx.h"
+#include "spi_bus.h"
 #include "config.h"
 #include <RadioLib.h>
 #include <Wire.h>
@@ -9,16 +10,13 @@
 #define LORA_IRQ   4
 #define LORA_RST   3
 #define LORA_BUSY  6
-#define LORA_SCK   40
-#define LORA_MISO  39
-#define LORA_MOSI  14
+// SCK/MISO/MOSI live in spi_bus (shared with TF card)
 
 // PI4IOE5V6408 port expander — RF antenna switch on P0
 #define PI4IOE_ADDR  0x43
 
-static SPIClass   s_spi(HSPI);
 static SX1262     s_radio = new Module(LORA_NSS, LORA_IRQ, LORA_RST, LORA_BUSY,
-                                       s_spi, SPISettings(2000000, MSBFIRST, SPI_MODE0));
+                                       g_hspi, SPISettings(2000000, MSBFIRST, SPI_MODE0));
 static bool       s_ready = false;
 
 static void rf_switch_on() {
@@ -29,10 +27,9 @@ static void rf_switch_on() {
 }
 
 bool lora_tx_init() {
-    // Wire1 already started by cap_lora_init() in main.cpp
+    // Wire1 already started by cap_lora_init() in main.cpp.
+    // g_hspi already started by spi_bus_init() in main.cpp.
     rf_switch_on();
-
-    s_spi.begin(LORA_SCK, LORA_MISO, LORA_MOSI, LORA_NSS);
 
     int state = s_radio.begin(LORA_FREQ,
                               LORA_BW,
